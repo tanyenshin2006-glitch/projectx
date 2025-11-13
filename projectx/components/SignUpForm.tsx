@@ -1,18 +1,24 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useForm } from "react-hook-form"
+import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Eye, EyeOff } from 'lucide-react';
 
 const signUpSchema = z.object({
   email: z.email({ message: "Invalid email address" }),
@@ -29,12 +35,15 @@ type SignUpForm = z.infer<typeof signUpSchema>
 
 
 export default function SignUpForm() {
+  const router = useRouter();
+
   const {
     register,
     handleSubmit,
     formState: {errors},
     watch,
     setError,
+    reset,
   } = useForm<SignUpForm>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -46,9 +55,50 @@ export default function SignUpForm() {
     reValidateMode: "onChange",
   })
 
+  const mutation = useMutation({
+    mutationFn: async (formData: {email: string; password: string; confirmPassword: string}) => {
+      const res =  await fetch("http://localhost:4000/auth/signup", {
+        method: "Post",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Signup failed: ${text}`);
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success("Signup successful!");
+      reset();
+      setTimeout(() => {
+        router.push("/");
+      }, 500);
+    },
+    onError: (error: any) => {
+      let message = "Signup failed";
+      try{
+        const errObj = JSON.parse(error.message.replace("Signup failed: ", ""));
+        if (errObj.message) {
+          message = errObj.message;
+        }
+      } catch {
+
+      }
+      toast.error(message);
+    },
+  });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   function onSubmit(data: SignUpForm) {
-  
-  }
+    mutation.mutate({
+      email: data.email, 
+      password: data.password,
+      confirmPassword: data.confirmPassword,
+    })
+  };
 
   return (
     <Card className="overflow-hidden p-0 max-w-sm w-full">
@@ -68,6 +118,7 @@ export default function SignUpForm() {
                 id="signup-email"
                 type="email"
                 placeholder="example@example.com"
+                aria-invalid={!!errors.email}
               />
               {errors.email &&(
                   <span className="text-red-500 text-xs">{errors.email.message}</span>
@@ -79,22 +130,44 @@ export default function SignUpForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field>
                 <FieldLabel htmlFor="signup-password">Password</FieldLabel>
-                <Input
-                  {...register("password")}
-                  id="signup-password"
-                  type="password"
-                />
+                <div className="relative">
+                  <Input
+                    {...register("password")}
+                    id="signup-password"
+                    type={showPassword ? "text" : "password"}
+                    aria-invalid={!!errors.email}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:cursor-pointer" 
+                    onClick={() => setShowPassword((v) => !v)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
+                  </button>
+                </div>
                 {errors.password &&(
                   <span className="text-red-500 text-xs">{errors.password.message}</span>
                 )}
               </Field>
               <Field>
                 <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
-                <Input
-                  {...register("confirmPassword")}
-                  id="confirm-password"
-                  type="password"
-                />
+                <div className="relative">
+                  <Input
+                    {...register("confirmPassword")}
+                    id="confirm-password"
+                    type= {showConfirmPassword ? "text" : "password"}
+                    aria-invalid={!!errors.email}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:cursor-pointer"
+                    onClick={() => setShowConfirmPassword((v) => !v) }
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
                 {errors.confirmPassword &&(
                   <span className="text-red-500 text-xs">{errors.confirmPassword.message}</span>
                 )}
@@ -106,8 +179,17 @@ export default function SignUpForm() {
             <Button
               type="submit"
               className="hover:cursor-pointer transition duration-300 ease-in-out w-full"
+              aria-busy={mutation.isPending}
+              disabled={mutation.isPending}
             >
-              Create Account
+              {mutation.isPending ? 
+                (
+                  <span className="flex items-center justify-center gap-2">
+                    <Spinner/ > Creating...
+                  </span>
+                ) : (
+                  "Create Account"
+                )}
             </Button>
             <FieldDescription className="text-center">
               Already have an account? <Link href="/">Sign in</Link>

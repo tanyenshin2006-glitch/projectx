@@ -4,6 +4,8 @@ import "./globals.css";
 import { ShootingStars } from "@/components/ui/shooting-stars";
 import { StarsBackground } from "@/components/ui/stars-background";
 import { ThemeProvider } from "@/components/theme-provider"
+import ReactQueryProvider from "@/components/ReactQueryProvider";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,11 +38,14 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-        <div className="fixed inset-0 -z-10">
-          <ShootingStars />
-          <StarsBackground />
-        </div>
-          {children}
+        <ReactQueryProvider>
+          <div className="fixed inset-0 -z-10">
+            <ShootingStars />
+            <StarsBackground />
+          </div>
+            <Toaster position="top-center" />
+            {children}
+        </ReactQueryProvider>
       </ThemeProvider>
       </body>
     </html>

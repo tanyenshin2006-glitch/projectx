@@ -15,6 +15,8 @@ import Link from "next/link";
 import { useForm } from "react-hook-form"
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useState } from "react";
+import { Eye, EyeOff } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.email({ message: "Invalid email address" }),
@@ -36,6 +38,8 @@ export default function LoginForm() {
     reValidateMode: "onChange",
   })
 
+  const [showPassword, setShowPassword] = useState(false);
+
   function onSubmit(data: LoginForm) {
   // handle form data here
   }
@@ -48,7 +52,7 @@ export default function LoginForm() {
           Enter your email below to login your account.
         </CardDescription>
         <CardAction>
-          <Link href="/signup">
+          <Link href="/auth/signup">
             <Button variant="link" className="hover:cursor-pointer">Sign Up</Button>
           </Link>
         </CardAction>
@@ -75,11 +79,21 @@ export default function LoginForm() {
                   Forgot your password?
                 </a>
               </div>
-              <Input
-                {...register("password")} 
-                id="login-password"
-                type="password"
-              />
+              <div className="relative">
+                <Input
+                  {...register("password")} 
+                  id="login-password"
+                  type={showPassword? "text" : "password"}
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:cursor-pointer"
+                  onClick={() => setShowPassword((v) => !v)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               {errors.password && (
                 <span className="text-red-500 text-xs">{errors.password.message}</span>
               )}
