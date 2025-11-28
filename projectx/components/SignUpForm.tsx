@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, UserRoundPlus } from 'lucide-react';
 
 const signUpSchema = z.object({
   email: z.email({ message: "Invalid email address" }),
@@ -32,7 +32,6 @@ const signUpSchema = z.object({
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, { message: "Passwords do not match", path: ["confirmPassword"]})
 type SignUpForm = z.infer<typeof signUpSchema>
-
 
 export default function SignUpForm() {
   const router = useRouter();
@@ -56,7 +55,7 @@ export default function SignUpForm() {
   })
 
   const mutation = useMutation({
-    mutationFn: async (formData: {email: string; password: string; confirmPassword: string}) => {
+    mutationFn: async (formData: SignUpForm) => {
       const res =  await fetch("http://localhost:4000/auth/signup", {
         method: "Post",
         headers: { "Content-Type": "application/json" },
@@ -93,11 +92,7 @@ export default function SignUpForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   function onSubmit(data: SignUpForm) {
-    mutation.mutate({
-      email: data.email, 
-      password: data.password,
-      confirmPassword: data.confirmPassword,
-    })
+    mutation.mutate(data)
   };
 
   return (
@@ -188,8 +183,11 @@ export default function SignUpForm() {
                     <Spinner/ > Creating...
                   </span>
                 ) : (
-                  "Create Account"
-                )}
+                  <span className="flex items-center justify-center gap-2">
+                    <UserRoundPlus/> Create Account
+                  </span>
+                )
+              }
             </Button>
             <FieldDescription className="text-center">
               Already have an account? <Link href="/">Sign in</Link>

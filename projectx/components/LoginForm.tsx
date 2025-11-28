@@ -16,7 +16,12 @@ import { useForm } from "react-hook-form"
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useState } from "react";
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { Spinner } from "@/components/ui/spinner";
+import { useEffect } from "react";
 
 const loginSchema = z.object({
   email: z.email({ message: "Invalid email address" }),
@@ -25,10 +30,13 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
+  const router = useRouter();
+
   const {
     register,
     handleSubmit,
     formState: {errors},
+    reset,
     watch,
     setError,
   } = useForm<LoginForm>({
@@ -38,10 +46,60 @@ export default function LoginForm() {
     reValidateMode: "onChange",
   })
 
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+        router.replace("/dashboard/todo");
+    }
+  }, [router]);
+  
+  const mutation = useMutation({
+    mutationFn: async (formData: { email:string, password: string }) => {
+      const res = await fetch ("http://localhost:4000/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Login failed: ${text}`);
+      }
+
+      return res.json();
+    },
+    onSuccess: (data) => {
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('user_email', data.email);
+
+      toast.success("Login successful");
+      reset();
+
+      setTimeout(() =>{
+        router.push("/dashboard/todo")
+      }, 500);
+    },
+
+    onError: (error:any) => {
+      let message = "Login failed";
+      try {
+        const errObj = JSON.parse(error.message.replace("Login failed: ", ""));
+        if (errObj.message) {
+          message = errObj.message;
+        }
+      } catch {
+      }
+      toast.error(message);
+    },
+  });
+
   const [showPassword, setShowPassword] = useState(false);
 
   function onSubmit(data: LoginForm) {
-  // handle form data here
+    mutation.mutate({
+      email: data.email,
+      password: data.password,
+    });
   }
 
   return (
@@ -103,8 +161,20 @@ export default function LoginForm() {
             <Button
               type="submit"
               className="w-full hover:cursor-pointer transition duration-300 ease-in-out"
+              aria-busy={mutation.isPending}
+              disabled={mutation.isPending}
             >
-              Login
+              {mutation.isPending ?
+                (
+                  <span className="flex items-center justify-center gap-2">
+                    <Spinner /> Logging In
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <LogIn />Log In
+                  </span>
+                )
+              }
             </Button>
           </div>
         </CardContent>

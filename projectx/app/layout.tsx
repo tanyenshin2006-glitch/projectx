@@ -3,9 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ShootingStars } from "@/components/ui/shooting-stars";
 import { StarsBackground } from "@/components/ui/stars-background";
-import { ThemeProvider } from "@/components/theme-provider"
-import ReactQueryProvider from "@/components/ReactQueryProvider";
-import { Toaster } from "sonner";
+import ClientProviders from "@/components/ClientProviders";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,22 +30,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-            disableTransitionOnChange
-          >
-        <ReactQueryProvider>
-          <div className="fixed inset-0 -z-10">
-            <ShootingStars />
-            <StarsBackground />
-          </div>
-            <Toaster position="top-center" />
-            {children}
-        </ReactQueryProvider>
-      </ThemeProvider>
-      </body>
+        <div className="fixed inset-0 -z-10">
+          <ShootingStars />
+          <StarsBackground />
+        </div>
+        <ClientProviders>
+        {children}
+        </ClientProviders>
+  </body>
     </html>
   );
 }
